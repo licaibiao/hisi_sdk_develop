@@ -1,0 +1,269 @@
+#!/bin/sh
+# Useage: ./load3521a [ -r|-i|-a ] [ ad ]
+#         -r : rmmod all modules
+#         -i : insmod all modules
+#    default : rmmod all moules and then insmod them
+#
+
+####################Variables Definition##########################
+AD_TYPE=6124        # ad type
+
+mem_total=512;		# 512M, total mem
+mem_start=0x80000000;	# phy mem start
+
+os_mem_size=64;		# 64M, os mem
+mmz_start=0x84000000;	# mmz start addr
+mmz_size=448M;		# 128M, mmz size
+
+##################################################################
+
+report_error()
+{
+	echo "******* Error: There's something wrong, please check! *****"
+	exit 1
+}
+
+insert_audio()
+{
+	insmod hi3521a_aio.ko
+	insmod hi3521a_ai.ko
+	insmod hi3521a_ao.ko
+	insmod hi3521a_aenc.ko
+	insmod hi3521a_adec.ko
+#	insmod extdrv/tlv_320aic31.ko 
+	echo "insert audio"
+}
+
+remove_audio()
+{
+#	rmmod tlv_320aic31.ko
+	rmmod hi3521a_adec
+	rmmod hi3521a_aenc
+	rmmod hi3521a_ao
+	rmmod hi3521a_ai
+	rmmod hi3521a_aio
+	echo "remove audio"
+}
+
+insert_ad()
+{
+	case $AD_TYPE in
+		6124)
+			insmod extdrv/nvp6124.ko
+			;;
+		2823)
+			insmod extdrv/tp2823.ko
+			;;			
+		6574)
+			insmod extdrv/rn6574.ko
+			;;
+		*)
+			echo "xxxx Invalid ad type $AD_TYPE xxxx"
+			report_error
+			;;
+	esac
+}
+
+remove_ad()
+{
+	case $AD_TYPE in
+		6124)
+			rmmod nvp6124
+			;;
+		2823)
+			rmmod tp2823
+			;;			
+		6574)
+			rmmod rn6574
+			;;
+		*)
+			echo "xxxx Invalid ad type $AD_TYPE xxxx"
+			report_error
+			;;
+	esac
+}
+
+
+insert_ko()
+{
+	# low power control
+	# source ./lowpower.sh > /dev/null
+
+	# pinmux configuration
+	source ./pinmux_hi3521a_vicap.sh > /dev/null
+	source ./pinmux_hi3521a_vga_hdmi_spi.sh > /dev/null
+	source ./pinmux_hi3521a_i2s.sh > /dev/null
+
+	# crg configuration
+	source ./crgctrl_hi3521a.sh > /dev/null
+
+	# system configuration
+	source ./sysctl_hi3521a_asic.sh > /dev/null
+
+	# driver load
+	insmod mmz.ko mmz=anonymous,0,$mmz_start,$mmz_size anony=1 || report_error
+	insmod hiuser.ko
+	insmod hi_media.ko
+	insmod hi3521a_base.ko
+	insmod hi3521a_sys.ko
+	insmod hi3521a_vdec.ko
+	insmod hi3521a_vfmw.ko 
+	insmod hi3521a_jpegd.ko
+	insmod hi3521a_tde.ko
+	insmod hi3521a_region.ko
+	insmod hi3521a_vgs.ko
+	insmod hi3521a_viu.ko detect_err_frame=10
+	
+	insmod hi3521a_vpss.ko
+	insmod hi3521a_vou.ko
+	insmod hifb.ko video="hifb:vram0_size:8100,vram1_size:1620,vram2_size:128"
+	insmod hi3521a_hdmi.ko
+
+	insmod hi3521a_rc.ko
+	insmod hi3521a_venc.ko
+	insmod hi3521a_chnl.ko
+	insmod hi3521a_h264e.ko
+	insmod hi3521a_jpege.ko
+	insmod hi3521a_vda.ko
+	insmod hi3521a_ive.ko
+
+#	echo "==== Your input AD type is $AD_TYPE ===="
+	insert_ad
+
+	insert_audio
+}
+
+remove_ko()
+{
+	remove_audio
+	remove_ad
+
+	rmmod hi3521a_ive
+	rmmod hi3521a_vda
+
+	rmmod hi3521a_rc
+	rmmod hi3521a_jpege
+	rmmod hi3521a_h264e
+	rmmod hi3521a_chnl
+	rmmod hi3521a_venc
+
+	rmmod hi3521a_hdmi
+	rmmod hifb
+	rmmod hi3521a_vou
+	rmmod hi3521a_vpss
+	rmmod hi3521a_viu
+
+	rmmod hi3521a_vgs
+	rmmod hi3521a_region
+	rmmod hi3521a_tde
+
+	rmmod hi3521a_jpegd
+	rmmod hi3521a_vfmw
+	rmmod hi3521a_vdec
+	rmmod hi3521a_sys
+	rmmod hi3521a_base
+	rmmod hi_media
+	rmmod hiuser
+	rmmod mmz
+}
+
+load_usage()
+{
+	echo "Usage:  ./load3521a [-option] [ad_name]"
+	echo "options:"
+	echo "    -i                       insert modules"
+	echo "    -r                       remove modules"
+	echo "    -a                       remove modules first, then insert modules"
+	echo "    -ad ad_name              config AD type [default: nvp6124]"
+	echo "    -osmem os_mem_size       config os mem size [unit: M, default: 64]"
+	echo "    -h                       help information"
+	echo -e "Available ad: nvp6124, tp2823"
+	echo -e "notes: osmem option can't be used when mmz zone partition is enable\n\n"
+	echo -e "for example: ./load3521a -a -ad 6124 -osmem 64\n"
+}
+
+calc_mmz_info()
+{
+	mmz_start=`echo "$mem_start $os_mem_size" | 
+	awk 'BEGIN { temp = 0; }
+	{
+		temp = $1/1024/1024 + $2;
+	} 
+	END { printf("0x%x00000\n", temp); }'`
+
+	mmz_size=`echo "$mem_total $os_mem_size" | 
+	awk 'BEGIN { temp = 0; }
+	{
+		temp = $1 - $2;
+	} 
+	END { printf("%dM\n", temp); }'`
+	echo "mmz_start: $mmz_start, mmz_size: $mmz_size"
+}
+
+
+######################parse arg###################################
+b_arg_os_mem=0
+b_arg_ad=0
+b_arg_insmod=0
+b_arg_remove=0
+
+for arg in $@
+do
+	if [ $b_arg_os_mem -eq 1 ] ; then
+		b_arg_os_mem=0;
+		os_mem_size=$arg;
+
+		if [ -z $os_mem_size ]; then
+			echo "[error] os_mem_size is null"
+			exit;
+		fi
+
+		if [ $os_mem_size -ge $mem_total ] ; then
+			echo "[err] os_mem[$os_mem_size], over total_mem[$mem_total]"
+			exit;
+		fi
+
+		calc_mmz_info;
+	fi
+
+	if [ $b_arg_ad -eq 1 ] ; then
+		b_arg_ad=0
+		AD_TYPE=$arg;
+	fi
+
+	case $arg in
+		"-i")
+			b_arg_insmod=1;
+			;;
+
+		"-r")
+			b_arg_remove=1;
+			;;
+		"-a")			
+			b_arg_insmod=1;
+			b_arg_remove=1;
+			;;
+
+		"-h")
+			load_usage;
+			;;
+
+		"-ad")
+			b_arg_ad=1;
+			;;
+
+		"-osmem")
+			b_arg_os_mem=1;
+			;;
+	esac
+done
+#######################parse arg end########################
+
+#######################Action###############################
+if [ $b_arg_remove -eq 1 ]; then
+	remove_ko;
+fi
+if [ $b_arg_insmod -eq 1 ]; then
+	insert_ko;
+fi
+
