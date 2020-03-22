@@ -14,6 +14,9 @@
 #include <string.h>
 #include "SDL/SDL.h"
 #include "SDL/SDL_ttf.h"
+#include "debug_font_osd.h"
+
+#define CHINESET_STRING "阿标在学习中"
 
 #define FONT_PATH       "./font/hisi_osd.ttf"
 
@@ -73,10 +76,52 @@ int CreateTimeBmpPicture(void)
     string_to_bmp(s8Contenx);        
 }
 
+int CreateChinesePicture(void)
+{
+    int  i = 0;
+    char l_s32Len = 0;
+    char l_arrs8Str[64] = {0};
+    char l_arrs8UTFBuf[64] = {0};
+    char l_arrss8Contenx[64] = {0};
+    unsigned short usUnicode=0;
+    
+    unsigned int usUtfLen=0;
+    unsigned int u32ContenxOffest=0; 
+    
+    snprintf(l_arrs8Str,sizeof(l_arrs8Str),"%s",CHINESET_STRING);
+    
+    l_s32Len = strlen(l_arrs8Str);
+
+    printf(" len = %d \n",l_s32Len);
+
+    for(i=0;i<l_s32Len;)
+    {
+        usUnicode=zz_gbk2uni((unsigned char)l_arrs8Str[i++],(unsigned char)l_arrs8Str[i++]);
+        usUtfLen= enc_unicode_to_utf8_one(usUnicode,l_arrs8UTFBuf,64);
+        if(usUtfLen<0)
+        {
+            printf("%s %d out len error \n",__FUNCTION__,__LINE__);
+            break;
+        };
+
+        memcpy(&l_arrss8Contenx[u32ContenxOffest],l_arrs8UTFBuf,usUtfLen);
+        
+        u32ContenxOffest+=usUtfLen;
+    }
+
+    string_to_bmp(l_arrss8Contenx);
+
+    return 0;
+
+}
+
+
 int main(void)
 {
     printf("hello world \n");
-    CreateTimeBmpPicture();
+    //CreateTimeBmpPicture();
+
+    CreateChinesePicture();
     return 0;
 }
 
