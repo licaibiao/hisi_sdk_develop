@@ -1,0 +1,162 @@
+20161115
+1.调整ahd 720P图像效果(eq_common.c)；
+2.fulhan tvi 720P A版本摄像机识别成B版本问题修正(函数nvp6134_set_common_value, bank9 0x64/6c)；
+3.exc 同轴控制命令内容更新(coax.c)；
+4.GetSyncWidth 函数调整(eq_common.c)；
+5.4M 25/30p hdelay调整(eq_common.c, video.c)；
+
+20161010
+file: audio.c
+line 179
+bank1 0x49 default value setted to 0x88, live audio mute function on.
+file: video.c
+from line 569,for comet setting.
+file: eq_common.c
+function: void SetFSClockmodeForColorlocking( unsigned char ch )
+fixed cvbs color locking issue.
+
+20160927
+added some functions.
+
+20160912
+file: acp.c
+function:
+void acp_set_baudrate(unsigned char ch)
+void acp_each_setting(unsigned char ch)
+description: adjusted AHD 720P,4M_NRT coaxial init settings; 
+
+file: coax.c
+function:
+void nvp6134_send_comm(unsigned char pel_ch, bool stop)
+description: added 5M_20P coaxial send settings
+
+file: eq.c/eq_common.c
+function: ...
+description: 
+added "video_fmt_debounce_eq" for short time debounce.
+adjusted AHD 3M/4M/5M color settings.
+
+file: video.c
+function: ...
+description: 
+optimized "nvp6134_vfmt_convert" ... etc functions;
+delete "portmode==NVP6134_OUTMODE_1MUX_4M_NRT" option cause QHD_NRT setting changed;
+QHD RT&NRT settings adjusted;
+5M NRT and 20P settings adjusted;
+
+20160906
+file: acp.c
+function:
+void acp_set_baudrate(unsigned char ch)
+void acp_each_setting(unsigned char ch)
+description: added 4M&5M(NRT&RT) coaxial init settings
+
+file: coax.c
+function:
+void __nvp6134_set_each_coax_mode(unsigned char pel_ch )
+unsigned char nvp6134_coax_command(unsigned char pel_ch, unsigned char command)
+void nvp6134_send_comm(unsigned char pel_ch, bool stop)
+description: added 4M&5M(NRT&RT) coaxial init settings
+
+file: eq.c/eq_common.c
+function: ...
+description: 
+added 4M&5M RT&NRT EQ functions;
+optimized "eq_set_value" "eq_coeff_A_setting_val" "eq_coeff_B_setting_val" functions;
+added "UTP" cable type;
+
+file: video.c
+function: ...
+description: 
+added 4M&5M RT&NRT detection;
+outmode "NVP6134_OUTMODE_1MUX_4M_NRT" for 1mux detection
+QHD RT&NRT settings adjusted;
+5M_20P settings adjusted;
+
+20160831
+file: video.c
+function: void nvp6134_chn_killcolor(unsigned char ch, unsigned char onoff)
+description: when do write operation, colorkill register should add channel offset.
+
+20160830
+file: coax.c
+function: void __nvp6134_set_each_coax_mode(unsigned char pel_ch )
+description: recover cvbs coaxial mode.
+file: eq.c/eq_common.c
+function: ...
+description: 
+ext 3M nrt EQ runtine changed;
+video quality adjusted by testing.
+remove some unused codes;
+file: video.c
+function: ...
+description: 
+1.added AHD 5M_NRT detection and settings;
+2.cvbs setting changed due to some bad camera testing;
+3.ahd 3M_RT motion setting adjusted;
+4.ext 3M_NRT video quality adjusted;
+5.added ahd 4M_NRT(15P) and 5M_20P settings(not tested).
+
+20160819
+file: eq.c
+function: int nvp6134_set_equalizer(unsigned char ch)
+description: added EXT 3M_18P distinguish method.
+file: video.c
+function: ...
+description: added EXT 3M_18P distinguish method.
+
+20160817
+file: acp_firmup.c
+function:int acp_dvr_check_ispstatus( void *p_param )
+description: added acp read initialize settings.
+
+file: eq.c
+function: int nvp6134_set_equalizer(unsigned char ch)
+line: 237,306 etc
+description: init struct s_eq_bak at the start of the function,
+1==s_eq_bak.ch_man_eq_flag[ch] means manual EQ;
+((0==s_eq_bak.ch_stage[ch]) && (2==s_eq_bak.ch_man_eq_flag[ch])) for nextchip demoboard auto EQ test.
+if you don't use manual eq, just keeps s_eq_bak.ch_man_eq_flag[ch]==0.
+
+file: video.c
+function: void nvp6134_setchn_ext_1080p2530(const unsigned char ch, const unsigned char vfmt)
+description:
+1.release "nvp6134_setchn_common_fhd(ch, vfmt);"
+2.line 2749 
+gpio_i2c_write(nvp6134_iic_addr[ch/4], 0x24,vfmt==PAL?0x08:0x08);
+changed to
+gpio_i2c_write(nvp6134_iic_addr[ch/4], 0x24,vfmt==PAL?0x18:0x18);
+
+****************************************************************************
+20160816
+file: acp.c
+function: void acp_set_baudrate(unsigned char ch)
+line: 216
+gpio_i2c_write(nvp6134_iic_addr[ch/4], ACP_AHD2_FHD_LINE+((ch%2)*0x80),ch_vfmt_status[ch]==PAL? 0x0D:0x0E);
+changed to:
+gpio_i2c_write(nvp6134_iic_addr[ch/4], ACP_AHD2_FHD_LINE+((ch%2)*0x80),ch_vfmt_status[ch]==PAL? 0x0E:0x0E);
+
+file: eq.c/eq.h
+function: int nvp6134_set_equalizer(unsigned char ch)
+line: 296,300 etc
+description:
+1. when video loss, recover 5xb8 value for video detection;
+2. added manual set EQ function(ch_man_eq_flag[MAX_CH_NUM]==1);
+3. EXT 1080P eq check twice for test.
+
+file:nvp6134_drv.c
+function:static int nvp6134_kernel_thread(void *data)
+description:
+added standard rutine of a process example;
+
+file: video.c/video.h
+function: static unsigned int nvp6134_vfmt_convert(unsigned int vdsts)
+description: added qhd detection value.
+function: unsigned int nvp6134_getvideoloss(void)
+description: added color on/off control on bw/color mode.
+function: int nvp6134_set_chnmode(const unsigned char ch, const unsigned char vfmt, const unsigned char chnmode)
+description: added case NVP6134_VI_4M:			nvp6134_setchn_ahd_QHD(ch, vfmt);		break;
+function: void nvp6134_setchn_ahd_QHD(const unsigned char ch, const unsigned char vfmt)
+description: for ahd 4M settings.
+
+
