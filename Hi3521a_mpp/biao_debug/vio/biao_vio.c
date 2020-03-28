@@ -299,6 +299,242 @@ END_4_720P_0:   //system exit
     return s32Ret;
 }
 
+
+/******************************************************** 
+Function:    BIAO_MPP_GET_VI_Frame
+Description: 循环获取YUV数据
+Input:  s32ViChn 通道号
+OutPut: none
+Return: 0: success，none 0:error
+Others: 
+Author: Caibiao Lee
+Date:   2020-02-02
+*********************************************************/
+void BIAO_MPP_GET_VI_Frame(int s32ViChn)
+{
+
+    int s32Ret=-1;
+    unsigned int u32Depth;
+    unsigned int i = 10;
+    unsigned int j = 0;
+    unsigned int u32Size = 0;
+    VIDEO_FRAME_INFO_S stFrameInfom;
+    HI_S32 s32MilliSec;
+    FILE * l_Fp = NULL;
+    unsigned char *l_pUserAddr;
+
+    s32Ret=HI_MPI_VI_GetFrameDepth(s32ViChn, &u32Depth);
+
+    if(s32Ret!=0)
+    {
+        printf("%s %d HI_MPI_VI_GetFrameDepth(%d) err=%#x\n",__FUNCTION__,__LINE__,
+            s32ViChn, s32Ret);
+        return -1;
+    }
+
+    if(u32Depth==0)
+    {
+        s32Ret=HI_MPI_VI_SetFrameDepth(s32ViChn, 1);
+        if(s32Ret!=0)
+        {
+            printf("%s %d HI_MPI_VI_SetFrameDepth(%d) err=%#x\n",
+                __FUNCTION__,__LINE__, s32ViChn, s32Ret);
+            return -2;
+        }
+    }
+
+    i=10;
+    while(i--)
+    {
+        s32Ret=HI_MPI_VI_GetFrame(s32ViChn, &stFrameInfom, s32MilliSec);
+        if(s32Ret!=0)
+        {
+            printf("%s %d HI_MPI_VI_GetFrame(%d) err=%#x\n",__FUNCTION__,__LINE__,
+                s32ViChn, s32Ret);
+             usleep(100000);
+            //return -3;
+            continue;
+        }
+
+        if(i!=1)
+        {
+            sleep(1);
+            continue;
+        }
+        
+        printf("u32Width        = 0x%x \n",stFrameInfom.stVFrame.u32Width);
+        printf("u32Height       = 0x%x \n",stFrameInfom.stVFrame.u32Height);
+        printf("u32Field        = 0x%x \n",stFrameInfom.stVFrame.u32Field);
+        printf("enPixelFormat   = 0x%x \n",stFrameInfom.stVFrame.enPixelFormat);
+        printf("enVideoFormat   = 0x%x \n\n",stFrameInfom.stVFrame.enVideoFormat);
+
+        for(j=0;j<3;j++)
+        {
+            printf("j = %d u32PhyAddr    = 0x%x \n",j,stFrameInfom.stVFrame.u32PhyAddr[j]);
+            printf("j = %d pVirAddr        = 0x%x \n",j,stFrameInfom.stVFrame.pVirAddr[j]);
+            printf("j = %d u32Stride       = 0x%x \n",j,stFrameInfom.stVFrame.u32Stride[j]);
+            printf("j = %d u32HeaderPhyAddr= 0x%x \n",j,stFrameInfom.stVFrame.u32HeaderPhyAddr[j]);
+            printf("j = %d pHeaderVirAddr  = 0x%x \n",j,stFrameInfom.stVFrame.pHeaderVirAddr[j]);
+            printf("j = %d u32HeaderStride = 0x%x\n\n",j,stFrameInfom.stVFrame.u32HeaderStride[j]); 
+        }
+
+        printf("s16OffsetBottom = 0x%x \n",stFrameInfom.stVFrame.s16OffsetBottom);
+        printf("s16OffsetLeft   = 0x%x \n",stFrameInfom.stVFrame.s16OffsetLeft);
+        printf("s16OffsetRight  = 0x%x \n",stFrameInfom.stVFrame.s16OffsetRight);
+        printf("u64pts          = 0x%x \n",stFrameInfom.stVFrame.u64pts);
+        printf("u32TimeRef      = 0x%x \n",stFrameInfom.stVFrame.u32TimeRef);
+        printf("u32PrivateData  = 0x%x \n",stFrameInfom.stVFrame.u32PrivateData); 
+        printf("enFlashType     = 0x%x\n\n",stFrameInfom.stVFrame.stSupplement.enFlashType);
+
+        
+#if 0
+        l_Fp = fopen("yuv420.yuv","w+");
+        if(NULL==l_Fp)
+        {
+            printf("%s %d file open error \n",__FUNCTION__,__LINE__);
+            break;
+        }
+
+        /**Y 分量**/
+        u32Size = stFrameInfom.stVFrame.u32Stride[0]*stFrameInfom.stVFrame.u32Height;
+        s32Ret = fwrite(stFrameInfom.stVFrame.u32PhyAddr[0],1,u32Size,l_Fp);
+        if(s32Ret!=u32Size)
+        {
+            fclose(l_Fp);
+            printf("%s %d fwrite file error %d \n",__FUNCTION__,__LINE__,s32Ret);
+            break;
+        }else
+        {
+            printf("%s %d write file len = %d \n",__FUNCTION__,__LINE__,s32Ret);
+        }
+
+
+        /**UV 分量**/
+        u32Size = stFrameInfom.stVFrame.u32Stride[1]*stFrameInfom.stVFrame.u32Height;
+        s32Ret = fwrite(stFrameInfom.stVFrame.u32PhyAddr[1],1,u32Size,l_Fp);
+        if(s32Ret!=u32Size)
+        {
+            fclose(l_Fp);
+            printf("%s %d fwrite file error %d \n",__FUNCTION__,__LINE__,s32Ret);
+            break;
+        }else
+        {
+            printf("%s %d write file len = %d \n",__FUNCTION__,__LINE__,s32Ret);
+        }
+
+        fclose(l_Fp);
+#endif
+   
+       u32Size = stFrameInfom.stVFrame.u32Stride[0]*stFrameInfom.stVFrame.u32Height*3/2; 
+       l_pUserAddr =(unsigned char *)HI_MPI_SYS_Mmap(stFrameInfom.stVFrame.u32PhyAddr[0], u32Size);
+       if(NULL!=l_pUserAddr)
+       {
+            
+           l_Fp = fopen("yuv420.yuv","w+");
+           if(NULL==l_Fp)
+           {
+               printf("%s %d file open error \n",__FUNCTION__,__LINE__);
+               break;
+           }
+                      
+           s32Ret = fwrite(l_pUserAddr,1,u32Size,l_Fp);
+           if(s32Ret!=u32Size)
+           {
+               fclose(l_Fp);
+               printf("%s %d fwrite file error %d \n",__FUNCTION__,__LINE__,s32Ret);
+               break;
+           }else
+           {
+               printf("%s %d write file len = %d \n",__FUNCTION__,__LINE__,s32Ret);
+           }
+
+           HI_MPI_SYS_Munmap(l_pUserAddr, u32Size);
+           fclose(l_Fp);
+       }
+ 
+        HI_MPI_VI_ReleaseFrame(s32ViChn, &stFrameInfom);
+
+        break;
+        
+        //usleep(100000);
+
+    }
+
+    return 0;
+
+}
+
+/******************************************************** 
+Function:    BIAO_Get_VI_Frame
+Description: 初始化VI  ,然后直接获取YUV数据
+Input:  none
+OutPut: none
+Return: 0: success，none 0:error
+Others: 
+Author: Caibiao Lee
+Date:   2020-02-02
+*********************************************************/
+int BIAO_Get_VI_Frame(void)
+{
+    SAMPLE_VI_MODE_E enViMode = SAMPLE_VI_MODE_2_720P;
+    VIDEO_NORM_E enNorm = VIDEO_ENCODING_MODE_PAL;
+
+    HI_U32 u32ViChnCnt = 4;
+    HI_S32 s32VpssGrpCnt = 4;
+    
+    VB_CONF_S stVbConf;   
+
+    HI_S32 i;
+    HI_S32 s32Ret = HI_SUCCESS;
+    HI_U32 u32BlkSize;
+    HI_CHAR ch;
+    SIZE_S stSize;
+    HI_U32 u32WndNum;
+
+    /******************************************
+     step  1: init variable 
+    ******************************************/ 
+    memset(&stVbConf,0,sizeof(VB_CONF_S));
+    u32BlkSize = SAMPLE_COMM_SYS_CalcPicVbBlkSize(enNorm,\
+                PIC_HD720, SAMPLE_PIXEL_FORMAT, SAMPLE_SYS_ALIGN_WIDTH,COMPRESS_MODE_SEG);
+    stVbConf.u32MaxPoolCnt = 128;
+
+    /* video buffer*/
+    //todo: vb=15
+    stVbConf.astCommPool[0].u32BlkSize = u32BlkSize;
+    stVbConf.astCommPool[0].u32BlkCnt = u32ViChnCnt * 8;
+
+    /******************************************
+     step 2: mpp system init. 
+    ******************************************/
+    s32Ret = SAMPLE_COMM_SYS_Init(&stVbConf);
+    if (HI_SUCCESS != s32Ret)
+    {
+        SAMPLE_PRT("system init failed with %d!\n", s32Ret);
+        goto ERROR_0;
+    }
+
+    /******************************************
+     step 3: start vi dev & chn
+    ******************************************/
+    s32Ret = SAMPLE_COMM_VI_Start(enViMode, enNorm);
+    if (HI_SUCCESS != s32Ret)
+    {
+        SAMPLE_PRT("start vi failed!\n");
+        goto ERROR_1;
+    }
+
+    BIAO_MPP_GET_VI_Frame(0);
+
+ERROR_1: 
+    SAMPLE_COMM_VI_Stop(enViMode);
+    
+ERROR_0:    
+    SAMPLE_COMM_SYS_Exit();
+
+}
+
+
 int BIAO_VIO_DEBUG(void)
 {
     HI_S32 s32Ret = HI_FAILURE;
@@ -307,8 +543,10 @@ int BIAO_VIO_DEBUG(void)
     signal(SIGTERM, BIAO_VIO_HandleSig);
    
     Check_NVP6134_VideoInputFMT();
-    s32Ret = BIAO_VIO_4_720P();
+    
+    //s32Ret = BIAO_VIO_4_720P();
 
+    s32Ret = BIAO_Get_VI_Frame();
 
     if (HI_SUCCESS == s32Ret)
     {

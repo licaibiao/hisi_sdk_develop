@@ -1192,10 +1192,7 @@ HI_S32 SAMPLE_COMM_VI_Start(SAMPLE_VI_MODE_E enViMode, VIDEO_NORM_E enNorm)
             return HI_FAILURE;
         }
     }
-#if 0  
-
-#else
-    
+ 
     for(i=0,ViChn=0; i<stViParam.s32ViDevCnt; i++)
     {
         for(j=0;j<stViParam.s32ViChnCnt/2;j++,ViChn++)
@@ -1222,7 +1219,7 @@ HI_S32 SAMPLE_COMM_VI_Start(SAMPLE_VI_MODE_E enViMode, VIDEO_NORM_E enNorm)
             } 
         }
     }
-#endif
+
     return HI_SUCCESS;
 }
 /*****************************************************************************

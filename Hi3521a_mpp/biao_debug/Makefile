@@ -15,6 +15,7 @@ INC += -I ./region
 INC += -I ./vdec_vo
 INC += -I ./venc
 INC += -I ./vio
+INC += -I ./audio
 
  
 SRC_C		 := $(wildcard ./*.c)
@@ -23,6 +24,7 @@ REGION_C     := $(wildcard ./region/*.c)
 VDEC_VO_C    := $(wildcard ./vdec_vo/*.c)
 VENC_C		 := $(wildcard ./venc/*.c)
 VIO_C		 := $(wildcard ./vio/*.c)
+AUDIO_C		 := $(wildcard ./audio/*.c)
  
 SRC_OBJ	  	 := $(patsubst %.c,%.o,$(SRC_C))
 COM_OBJ	     := $(patsubst %.c,%.o,$(COM_C))
@@ -30,6 +32,7 @@ REGION_OBJ	 := $(patsubst %.c,%.o,$(REGION_C))
 VDEC_VO_OBJ	 := $(patsubst %.c,%.o,$(VDEC_VO_C))
 VENC_OBJ	 := $(patsubst %.c,%.o,$(VENC_C))
 VIO_OBJ	     := $(patsubst %.c,%.o,$(VIO_C))
+AUDIO_OBJ	 := $(patsubst %.c,%.o,$(AUDIO_C))
 
 
 CFLAGS += -Wall  -lpthread
@@ -42,7 +45,7 @@ LIB_DIR      := -L$(FONTLIBDIR) -L$(MPPLIBDIR)
 LIB_SO       := $(addprefix -l,$(HI_MPI_LIBSO))
 LIB_SO       += $(addprefix -l,$(FONT_LIBSO))
 
-ALL_OBJ=$(SRC_OBJ) $(COM_OBJ) $(REGION_OBJ) $(VDEC_VO_OBJ) $(VENC_OBJ) $(VIO_OBJ)
+ALL_OBJ=$(SRC_OBJ) $(COM_OBJ) $(REGION_OBJ) $(VDEC_VO_OBJ) $(VENC_OBJ) $(VIO_OBJ) $(AUDIO_OBJ)
 
 HI_MPI_LIBS := ./lib/libhdmi.a
 

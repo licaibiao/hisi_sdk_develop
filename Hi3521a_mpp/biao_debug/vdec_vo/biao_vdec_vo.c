@@ -47,6 +47,18 @@ HI_VOID BIAO_VDEC_HandleSig(HI_S32 signo)
     exit(0);
 }
 
+/******************************************************** 
+Function:    SAMPLE_VDEC_H264_4Ch_4Wind
+Description: 将4个h264文件模拟成数据流输入到解码模块
+    将解码模块与输出模块绑定，在显示屏中以4分屏显示4
+    路画面
+Input:  none
+OutPut: none
+Return: 0: success，none 0:error
+Others: 
+Author: Caibiao Lee
+Date:   2020-02-02
+*********************************************************/
 HI_S32 SAMPLE_VDEC_H264_4Ch_4Wind(void)
 {
     VB_CONF_S stVbConf, stModVbConf;

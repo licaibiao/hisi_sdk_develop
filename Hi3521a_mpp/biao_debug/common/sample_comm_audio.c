@@ -603,10 +603,159 @@ HI_S32 SAMPLE_NVP6124_CfgAudio(const AIO_ATTR_S *pstAioAttr)
         close(fd);
         return HI_FAILURE;
     }
+  
     close(fd);
 
     return HI_SUCCESS;
 }
+
+
+HI_S32 SAMPLE_NVP6134_CfgAudio(const AIO_ATTR_S *pstAioAttr)
+{
+	int fd;
+    nvp6134_audio_format format;
+
+    switch (pstAioAttr->enBitwidth)
+    {
+        case AUDIO_BIT_WIDTH_8:
+            format.precision = 1;
+            break;
+
+        case AUDIO_BIT_WIDTH_16:
+            format.precision = 0;
+            break;
+
+        default:
+            printf("func(%s) line(%d): nvp6124 not support bitwidth %d!\n",
+                    __FUNCTION__, __LINE__, pstAioAttr->enBitwidth);
+            return HI_FAILURE;
+    }
+
+	switch (pstAioAttr->enWorkmode)
+    {
+        case AIO_MODE_I2S_MASTER:
+		case AIO_MODE_PCM_MASTER_NSTD:
+		case AIO_MODE_PCM_MASTER_STD:
+            format.mode = 0;
+			format.clkdir = 1;
+            break;
+
+        case AIO_MODE_I2S_SLAVE:
+		case AIO_MODE_PCM_SLAVE_NSTD:
+		case AIO_MODE_PCM_SLAVE_STD:
+            format.mode = 1;
+			format.clkdir = 0;
+            break;
+
+        default:
+            printf("func(%s) line(%d): nvp6134 not support mode %d!\n",
+                    __FUNCTION__, __LINE__, pstAioAttr->enWorkmode);
+            return HI_FAILURE;
+    }
+
+	switch (pstAioAttr->enWorkmode)
+    {
+        case AIO_MODE_I2S_MASTER:
+		case AIO_MODE_I2S_SLAVE:
+            format.format = 0;
+			format.dspformat = 0;
+            break;
+
+		case AIO_MODE_PCM_MASTER_STD:
+		case AIO_MODE_PCM_SLAVE_STD:
+            format.format = 1;
+			format.dspformat = 0;
+            break;
+
+		case AIO_MODE_PCM_MASTER_NSTD:
+		case AIO_MODE_PCM_SLAVE_NSTD:
+            format.format = 1;
+			format.dspformat = 1;
+            break;
+
+        default:
+            printf("func(%s) line(%d): nvp6134 not support mode %d!\n",
+                    __FUNCTION__, __LINE__, pstAioAttr->enWorkmode);
+            return HI_FAILURE;
+    }
+
+	switch (pstAioAttr->enSamplerate)
+    {
+        case AUDIO_SAMPLE_RATE_8000:
+            format.samplerate = 0;
+            break;
+
+        case AUDIO_SAMPLE_RATE_16000:
+            format.samplerate = 1;
+            break;
+
+		case AUDIO_SAMPLE_RATE_32000:
+            format.samplerate = 2;
+            break;
+
+        default:
+            printf("func(%s) line(%d): nvp6134 not support samplerate %d!\n",
+                    __FUNCTION__, __LINE__, pstAioAttr->enSamplerate);
+            return HI_FAILURE;
+    }
+
+	switch (pstAioAttr->u32ChnCnt)
+	{
+		case 1:
+		case 2:
+		case 4:
+		case 8:
+		case 16:
+			if (1 == pstAioAttr->u32ChnCnt)
+			{
+				format.chn_num = 2;
+			}
+			else
+			{
+				format.chn_num = pstAioAttr->u32ChnCnt;
+			}
+			
+			format.bitrate = 0;
+			break;
+		
+		case 20:
+			format.chn_num = 16;
+			format.bitrate = 2;
+			break;
+
+		default:
+            printf("func(%s) line(%d): nvp6124 not support chn_num %d!\n",
+                    __FUNCTION__, __LINE__, pstAioAttr->u32ChnCnt);
+            return HI_FAILURE;
+	}
+
+    fd = open(NVP6134_FILE, O_RDWR);
+    if (fd < 0)
+    {
+        printf("open %s fail\n", NVP6134_FILE);
+        return HI_FAILURE;
+    }
+    
+    if (ioctl(fd, NVP6134_SET_AUDIO_R_FORMAT, &format))
+    {
+        printf("func(%s) line(%d): ioctl NVP6124_SET_AUDIO_R_FORMAT err!\n",
+                    __FUNCTION__, __LINE__);
+        close(fd);
+        return HI_FAILURE;
+    }
+
+	if (ioctl(fd, NVP6134_SET_AUDIO_PB_FORMAT, &format))
+    {
+        printf("func(%s) line(%d): ioctl NVP6124_SET_AUDIO_PB_FORMAT err!\n",
+                    __FUNCTION__, __LINE__);
+        close(fd);
+        return HI_FAILURE;
+    }
+    close(fd);
+
+    return HI_SUCCESS;
+}
+
 
 /*config Tlv320*/
 HI_S32 SAMPLE_COMM_AUDIO_CfgTlv320(AIO_ATTR_S *pstAioAttr)
@@ -671,6 +820,21 @@ HI_S32 SAMPLE_COMM_AUDIO_CfgAcodec(AIO_ATTR_S *pstAioAttr)
        }
        bCodecCfg = HI_TRUE;
 #endif
+
+   /*** ACODEC_TYPE_NVP6124 ***/ 
+   s32Ret = SAMPLE_NVP6134_CfgAudio(pstAioAttr);
+   if (HI_SUCCESS != s32Ret)
+   {
+       printf("%s: SAMPLE_NVP6124_CfgAudio failed\n", __FUNCTION__);
+       return s32Ret;
+   }
+   bCodecCfg = HI_TRUE;
+
+
+
+
+
+
  
    if (!bCodecCfg)
    {

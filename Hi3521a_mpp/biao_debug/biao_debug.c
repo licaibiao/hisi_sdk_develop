@@ -19,9 +19,11 @@
 int BIAO_Debug_Interface(void)
 {
 
-    BIAO_VIO_DEBUG();
-    BIAO_REGION_DEBUG();
+    //BIAO_VIO_DEBUG();
     
+    //BIAO_REGION_DEBUG();
+    
+    BIAO_VIO_DEBUG();
     return 0;
 }
 
