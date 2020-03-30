@@ -15,6 +15,7 @@
 #include "biao_vio.h"
 #include "biao_vdec_vo.h"
 #include "biao_region.h"
+#include "biao_vda.h"
 
 int BIAO_Debug_Interface(void)
 {
@@ -23,7 +24,9 @@ int BIAO_Debug_Interface(void)
     
     //BIAO_REGION_DEBUG();
     
-    BIAO_VIO_DEBUG();
+    //BIAO_VIO_DEBUG();
+
+    BIAO_VDA_DEBUG();
     return 0;
 }
 
